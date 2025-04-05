@@ -1,140 +1,125 @@
 import re
 from telethon import TelegramClient, events
 from PIL import Image, ImageDraw, ImageFont
+import os
+from dotenv import load_dotenv
 
-# Suas credenciais do Telegram
-API_ID = '20332810'
-API_HASH = '2595744c1a58cb7fee8729d381439060'
-BOT_TOKEN = '7686190005:AAFyHP2yCeYCyk1RbdxCPbfR-5_fh5yZTHA'
+load_dotenv()  # Carrega variáveis do .env
 
-# ID do canal de origem (de onde o bot vai pegar as mensagens)
-SOURCE_CHANNEL = 2429559430  
-# ID do canal de destino (para onde o bot enviará as imagens)  
-DESTINATION_CHANNEL = 1002395741879
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))
+DESTINATION_CHANNEL = int(os.getenv("DESTINATION_CHANNEL"))
+
 
 # Criando o cliente do bot
 client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-# Caminho da imagem de fundo
-IMG_FUNDO_PATH = "img_fundo.png"
+# Caminho das imagens de fundo
+IMG_FUNDO_LONG = "img_fundo_B.png"
+IMG_FUNDO_SHORT = "img_fundo_S.png"
 
-# Evento para capturar novas mensagens no canal
+# Definir a fonte Arial
+try:
+    FONTE_PATH = "C:/Windows/Fonts/Arial.ttf"  # Caminho para Windows
+    FONTE_TAMANHO = 40
+    fonte = ImageFont.truetype(FONTE_PATH, FONTE_TAMANHO)
+except OSError:
+    print("Fonte Arial não encontrada, usando fonte padrão.")
+    fonte = ImageFont.load_default()
+
+def formatar_numero(valor, casas_decimais=2):
+    """
+    Formata os números para o padrão correto:
+    - Usa ponto como separador de milhar
+    - Usa vírgula como decimal
+    - Mantém o número correto de casas decimais
+    """
+    try:
+        valor = float(valor.replace(".", "").replace(",", "."))  # Corrige entrada
+        return f"{valor:,.{casas_decimais}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    except ValueError:
+        return "N/A"
+
 @client.on(events.NewMessage(chats=SOURCE_CHANNEL))
 async def handle_new_message(event):
     mensagem = event.raw_text
     print("Nova mensagem recebida:", mensagem)
-
-    # Gerar imagem com o texto capturado
+    
     nome_arquivo = gerar_imagem_sinal(mensagem)
-
+    
     if nome_arquivo:
-        # Enviar a imagem para o canal de destino
         await client.send_file(DESTINATION_CHANNEL, nome_arquivo, caption="📊 Novo sinal de trade recebido!")
         print("Imagem enviada para o canal de destino!")
 
 def gerar_imagem_sinal(mensagem, nome_arquivo="sinal_trade.png"):
     try:
-        # Carregar imagem de fundo
-        img_fundo = Image.open(IMG_FUNDO_PATH)
+        direcao = "LONG" if "LONG" in mensagem.upper() else "SHORT"
+        img_fundo_path = IMG_FUNDO_LONG if direcao == "LONG" else IMG_FUNDO_SHORT
+        img_fundo = Image.open(img_fundo_path)
         largura, altura = img_fundo.size
     except Exception as e:
         print(f"Erro ao carregar a imagem de fundo: {e}")
         return None
-
-    draw = ImageDraw.Draw(img_fundo)
-
-    # Determinar se é LONG ou SHORT
-    if "SHORT" in mensagem.upper():
-        direcao = "SHORT"
-        cor_destaque = (255, 0, 0)  # Vermelho
-    elif "LONG" in mensagem.upper():
-        direcao = "LONG"
-        cor_destaque = (0, 255, 0)  # Verde
-    else:
-        direcao = "Desconhecido"
-        cor_destaque = (255, 255, 255)  # Branco
-
-    # Definição das fontes
-    try:
-        fonte_titulo = ImageFont.truetype("Orbitron-Bold.ttf", 100)
-        fonte_texto = ImageFont.truetype("Orbitron-Bold.ttf", 60)
-    except:
-        fonte_titulo = ImageFont.load_default()
-        fonte_texto = ImageFont.load_default()
-
-    # Extraindo dados da mensagem
-    par_cripto = re.search(r"([A-Z]+/[A-Z]+)", mensagem)  # Exemplo: "DOGE/USDT"
-    alavancagem = re.search(r"LEVERAGE\s*[:|-]?\s*Cross\s*(\d+)X", mensagem, re.IGNORECASE)  # Exemplo: "20X"
-    entrada = re.search(r"ENTRY\s*[:|-]?\s*([\d,\.]+)\s*-\s*([\d,\.]+)", mensagem)  # Exemplo: "0.16938 - 0.16954"
-    # Ajuste para Stop Loss
-    # Modificação para capturar Stop Loss em porcentagem (ex: "5%-10%")
-    stop_loss_decimal = re.search(r"Stop\s*Loss\s*[:|-]?\s*([\d,\.]+)", mensagem)  # Exemplo: "0.155976"
-    stop_loss_percent = re.search(r"Stop\s*Loss\s*[:|-]?\s*(\d+%-\d)", mensagem)  # Exemplo: "5%-10%"
     
-    # Identificar qual formato de Stop Loss está presente
-    if stop_loss_percent:
-        stop_loss = "5% - 10%"  # Valor fixo para porcentagem
-    elif stop_loss_decimal:
-        stop_loss = stop_loss_decimal.group(1)  # Exemplo: "0.155976"
-    else:
-        stop_loss = "Desconhecido"
-    # Identificar os tipos de Take Profits
-    take_profit_target = re.findall(r"TARGET\s*\d+\s*[-:]*\s*([\d,\.]+)", mensagem) # Exemplo: " TARGET 1 - 8.39"
-    take_profit_tp = re.findall(r"\d+\)\s*:?\s*([\d,\.]+)", mensagem) # Exemplo: "1) : 0.2095"
-
-    if take_profit_target:
-        take_profits = take_profit_target
-    elif take_profit_tp:
-        take_profits = take_profit_tp
-    else:
-        take_profits = "Desconhecido"
-
-    # Tratamento das informações extraídas
-    par_cripto = par_cripto.group(0) if par_cripto else "Desconhecido"
-    alavancagem = alavancagem.group(1) if alavancagem else "Desconhecido"
-    entrada_min = entrada.group(1) if entrada else "Desconhecido"
-    entrada_max = entrada.group(2) if entrada else "Desconhecido"
-
-
-    # Definir cores
-    cor_branca = (255, 255, 255)
+    draw = ImageDraw.Draw(img_fundo)
     cor_verde = (0, 255, 0)
     cor_vermelha = (255, 0, 0)
-    cor_amarela = (255, 204, 0)
-
-    # Posições iniciais
-    y_texto = 350
-    espacamento = 95
-
-    # Desenhar os elementos na ordem correta
-    draw.text((largura // 2 - 300, y_texto), par_cripto, font=fonte_titulo, fill=cor_branca)
-    y_texto += espacamento * 2
-
-    draw.text((largura // 2 - 450, y_texto), f"DIRECTION: {direcao}", font=fonte_texto, fill=cor_verde if direcao == "LONG" else cor_vermelha)
-    y_texto += espacamento * 1.5
-
-    draw.text((largura // 2 - 450, y_texto), f"LEVERAGE: CROSS {alavancagem}X", font=fonte_texto, fill=cor_amarela)
-    y_texto += espacamento * 1.5
-
-    draw.text((largura // 2 - 450, y_texto), f"ENTRY: {entrada_min} - {entrada_max}", font=fonte_texto, fill=cor_branca)
-    y_texto += espacamento * 1.5
-
-    draw.text((largura // 2 - 450, y_texto), "TAKE PROFITS:", font=fonte_texto, fill=cor_branca)
-    y_texto += espacamento * 1.5
+    cor_branca = (255, 255, 255)
     
-    for i, tp in enumerate(take_profits, start=1):
-        draw.text((largura // 2 - 450, y_texto), f"TP {i} - {tp}", font=fonte_texto, fill=cor_branca)
-        y_texto += espacamento // 1.5
+    # Extração de dados
+    par = re.search(r"Pair:\s*([A-Z]+USDT)", mensagem)
+    roi = re.search(r"ROI:\s*(-?\d+,?\d*)%", mensagem)
+    pnl = re.search(r"PNL:\s*(-?\d+,?\d*)", mensagem)
+    size = re.search(r"Size:\s*(\d+,?\d*)", mensagem)
+    margin = re.search(r"Margin:\s*(\d+,?\d*)", mensagem)
+    margin_ratio = re.search(r"Margin Ratio:\s*(-?\d+,?\d*)%", mensagem)
+    entry_price = re.search(r"Entry Price:\s*(\d+[.,]?\d*)", mensagem)
+    mark_price = re.search(r"Mark Price:\s*(\d+[.,]?\d*)", mensagem)
+    liq_price = re.search(r"Liq Price:\s*(\d+[.,]?\d*)", mensagem)
+    
+    # Pegando valores ou definindo padrão
+    par = par.group(1) if par else "N/A"
+    roi_value = formatar_numero(roi.group(1)) if roi else "0,00"
+    pnl_value = formatar_numero(pnl.group(1)) if pnl else "0,00"
+    margin_ratio_value = formatar_numero(margin_ratio.group(1)) if margin_ratio else "0,00"
+    
+    size = formatar_numero(size.group(1), 3) if size else "N/A"  # 3 casas decimais para Size
+    margin = formatar_numero(margin.group(1)) if margin else "N/A"
+    entry_price = formatar_numero(entry_price.group(1)) if entry_price else "N/A"
+    mark_price = formatar_numero(mark_price.group(1)) if mark_price else "N/A"
+    liq_price = formatar_numero(liq_price.group(1)) if liq_price else "N/A"
+    
+    roi_cor = cor_verde if float(roi_value.replace(",", ".")) >= 0 else cor_vermelha
+    pnl_cor = cor_verde if float(pnl_value.replace(",", ".")) >= 0 else cor_vermelha
+    margin_ratio_cor = cor_verde if float(margin_ratio_value.replace(",", ".")) >= 0 else cor_vermelha
+    
+    # Função para alinhar à direita
+    def alinhar_direita(texto, x_final, y, cor=cor_branca):
+        text_width = draw.textbbox((0, 0), texto, font=fonte)[2]
+        draw.text((x_final - text_width, y), texto, font=fonte, fill=cor)
 
-    y_texto += espacamento // 2
-    draw.text((largura // 2 - 450, y_texto), f"STOP LOSS: {stop_loss}", font=fonte_texto, fill=cor_vermelha)
+    # Posicionamento dos textos
+    # Criar uma fonte maior para o Pair
+    FONTE_GRANDE_TAMANHO = 60
+    fonte_grande = ImageFont.truetype(FONTE_PATH, FONTE_GRANDE_TAMANHO)
 
-    # Salvar a imagem final
+    # Escrever o Pair com fonte maior
+    draw.text((100, 45), f"{par}", font=fonte_grande, fill=cor_branca)
+
+    alinhar_direita(f"{roi_value}%", 1135, 220, roi_cor)  # ROI alinhado à direita
+    draw.text((50, 220), f"{pnl_value}", font=fonte, fill=pnl_cor)  # PNL normal
+    draw.text((50, 360), f"{size}", font=fonte, fill=cor_branca)  # Size normal
+    draw.text((420, 360), f"{margin}", font=fonte, fill=cor_branca)  # Margin normal
+    alinhar_direita(f"{margin_ratio_value}%", 1135, 360, margin_ratio_cor)  # Margin Ratio alinhado à direita
+    draw.text((50, 500), f"{entry_price}", font=fonte, fill=cor_branca)  # Entry Price normal
+    draw.text((420, 500), f"{mark_price}", font=fonte, fill=cor_branca)  # Mark Price normal
+    alinhar_direita(f"{liq_price}", 1135, 500)  # Liq Price alinhado à direita
+
     img_fundo.save(nome_arquivo)
     print(f"Imagem salva como {nome_arquivo}")
-
     return nome_arquivo
 
-# Iniciar o bot
 print("Bot rodando...")
 client.run_until_disconnected()
