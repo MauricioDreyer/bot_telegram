@@ -3,7 +3,6 @@ from telethon import TelegramClient, events
 from PIL import Image, ImageDraw, ImageFont
 import os
 from dotenv import load_dotenv
-from flask import Flask
 import threading
 
 load_dotenv()
@@ -13,12 +12,9 @@ API_ID = '20332810'
 API_HASH = '2595744c1a58cb7fee8729d381439060'
 BOT_TOKEN = '7686190005:AAFyHP2yCeYCyk1RbdxCPbfR-5_fh5yZTHA'
 
-# ID do canal de origem (de onde o bot vai pegar as mensagens)
-SOURCE_CHANNEL = 2429559430  
-# ID do canal de destino (para onde o bot enviará as imagens)  
+SOURCE_CHANNEL = 2429559430
 DESTINATION_CHANNEL = 1002395741879
 
-# Adicione isso no topo do bot_telegram.py
 bot_ativo = False
 client = None
 
@@ -46,7 +42,6 @@ def iniciar_bot():
 
     threading.Thread(target=bot_loop).start()
 
-
 def parar_bot():
     global bot_ativo, client
     if client:
@@ -54,6 +49,9 @@ def parar_bot():
         client = None
     bot_ativo = False
     print("Bot parado.")
+
+def is_bot_running():
+    return bot_ativo
 
 IMG_FUNDO_LONG = "img_fundo_B.png"
 IMG_FUNDO_SHORT = "img_fundo_S.png"
@@ -134,20 +132,3 @@ def gerar_imagem_sinal(mensagem, nome_arquivo="sinal_trade.png"):
     img_fundo.save(nome_arquivo)
     print(f"Imagem salva como {nome_arquivo}")
     return nome_arquivo
-
-def start_bot():
-    client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-
-    @client.on(events.NewMessage(chats=SOURCE_CHANNEL))
-    async def handle_new_message(event):
-        mensagem = event.raw_text
-        print("Nova mensagem recebida:", mensagem)
-
-        nome_arquivo = gerar_imagem_sinal(mensagem)
-
-        if nome_arquivo:
-            await client.send_file(DESTINATION_CHANNEL, nome_arquivo, caption="📊 Novo sinal de trade recebido!")
-            print("Imagem enviada para o canal de destino!")
-
-    print("Bot rodando via start_bot()...")
-    client.run_until_disconnected()
