@@ -147,17 +147,3 @@ def start_bot():
 
     print("Bot rodando via start_bot()...")
     client.run_until_disconnected()
-
-# Flask para manter o container ativo no Cloud Run
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "Bot do Telegram está rodando com Flask no Cloud Run!"
-
-if __name__ == "__main__":
-    bot_thread = threading.Thread(target=start_bot)
-    bot_thread.start()
-
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
