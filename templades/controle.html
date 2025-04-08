@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Controle do Bot</title>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 30px;">
+    <h1>🛠️ Controle do Bot do Telegram</h1>
+    <form method="post" action="/bot">
+        <button type="submit" name="acao" value="start" style="padding: 10px 20px; margin-right: 10px;">🚀 Iniciar Bot</button>
+        <button type="submit" name="acao" value="stop" style="padding: 10px 20px;">🛑 Parar Bot</button>
+    </form>
+    {% if status %}
+        <p style="margin-top: 20px;">Status atual: <strong>{{ status }}</strong></p>
+    {% endif %}
+</body>
+</html>
