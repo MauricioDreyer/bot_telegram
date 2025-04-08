@@ -1,20 +1,23 @@
 import re
+import os
+import threading
+import asyncio
 from telethon import TelegramClient, events
 from PIL import Image, ImageDraw, ImageFont
-import os
 from dotenv import load_dotenv
-import threading
 
 load_dotenv()
 
-# Suas credenciais do Telegram
+# Credenciais do Telegram
 API_ID = '20332810'
 API_HASH = '2595744c1a58cb7fee8729d381439060'
 BOT_TOKEN = '7686190005:AAFyHP2yCeYCyk1RbdxCPbfR-5_fh5yZTHA'
 
+# IDs dos canais
 SOURCE_CHANNEL = 2429559430
 DESTINATION_CHANNEL = 1002395741879
 
+# Controle do bot
 bot_ativo = False
 client = None
 
@@ -28,6 +31,10 @@ def iniciar_bot():
 
     def bot_loop():
         global client
+
+        # Corrige o erro do event loop na thread
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
         client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
         @client.on(events.NewMessage(chats=SOURCE_CHANNEL))
@@ -53,9 +60,11 @@ def parar_bot():
 def is_bot_running():
     return bot_ativo
 
+# Caminhos de imagem
 IMG_FUNDO_LONG = "img_fundo_B.png"
 IMG_FUNDO_SHORT = "img_fundo_S.png"
 
+# Fonte
 try:
     FONTE_PATH = "C:/Windows/Fonts/Arial.ttf"
     FONTE_TAMANHO = 40
@@ -116,7 +125,7 @@ def gerar_imagem_sinal(mensagem, nome_arquivo="sinal_trade.png"):
         draw.text((x_final - text_width, y), texto, font=fonte, fill=cor)
 
     FONTE_GRANDE_TAMANHO = 60
-    fonte_grande = ImageFont.truetype(FONTE_PATH, FONTE_GRANDE_TAMANHO)
+    fonte_grande = ImageFont.truetype(FONTE_PATH, FONTE_GRANDE_TAMANHO) if os.path.exists(FONTE_PATH) else fonte
 
     draw.text((100, 45), f"{par}", font=fonte_grande, fill=cor_branca)
 
