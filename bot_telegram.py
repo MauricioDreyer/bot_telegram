@@ -8,11 +8,15 @@ import threading
 
 load_dotenv()
 
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SOURCE_CHANNEL = int(os.getenv("SOURCE_CHANNEL"))
-DESTINATION_CHANNEL = int(os.getenv("DESTINATION_CHANNEL"))
+# Suas credenciais do Telegram
+API_ID = '20332810'
+API_HASH = '2595744c1a58cb7fee8729d381439060'
+BOT_TOKEN = '7686190005:AAFyHP2yCeYCyk1RbdxCPbfR-5_fh5yZTHA'
+
+# ID do canal de origem (de onde o bot vai pegar as mensagens)
+SOURCE_CHANNEL = 2429559430  
+# ID do canal de destino (para onde o bot enviará as imagens)  
+DESTINATION_CHANNEL = 1002395741879
 
 # Adicione isso no topo do bot_telegram.py
 bot_ativo = False
