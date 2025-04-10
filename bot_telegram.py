@@ -67,7 +67,7 @@ IMG_FUNDO_SHORT = "img_fundo_S.png"
 # Fonte
 try:
     FONTE_PATH = "C:/Windows/Fonts/Arial.ttf"
-    FONTE_TAMANHO = 40
+    FONTE_TAMANHO = 100
     fonte = ImageFont.truetype(FONTE_PATH, FONTE_TAMANHO)
 except OSError:
     print("Fonte Arial não encontrada, usando fonte padrão.")
