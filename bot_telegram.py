@@ -67,7 +67,7 @@ IMG_FUNDO_SHORT = "img_fundo_S.png"
 # Fonte
 try:
     FONTE_PATH = "C:/Windows/Fonts/Arial.ttf"
-    FONTE_TAMANHO = 500
+    FONTE_TAMANHO = 40
     fonte = ImageFont.truetype(FONTE_PATH, FONTE_TAMANHO)
 except OSError:
     print("Fonte Arial não encontrada, usando fonte padrão.")
@@ -124,7 +124,7 @@ def gerar_imagem_sinal(mensagem, nome_arquivo="sinal_trade.png"):
         text_width = draw.textbbox((0, 0), texto, font=fonte)[2]
         draw.text((x_final - text_width, y), texto, font=fonte, fill=cor)
 
-    FONTE_GRANDE_TAMANHO = 800
+    FONTE_GRANDE_TAMANHO = 50
     fonte_grande = ImageFont.truetype(FONTE_PATH, FONTE_GRANDE_TAMANHO) if os.path.exists(FONTE_PATH) else fonte
 
     draw.text((100, 45), f"{par}", font=fonte_grande, fill=cor_branca)
